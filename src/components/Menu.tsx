@@ -10,6 +10,7 @@ import { HIDE_ALL, DISPLAY_MENU } from '../utils/actions';
 import { styles } from '../utils/styles';
 import { eventManager } from '../utils/eventManager';
 import { TriggerEvent, StyleProps, MenuId } from '../types';
+import { isFunction, isArray } from '../utils/utils';
 
 const KEY = {
   ENTER: 13,
@@ -29,7 +30,7 @@ export interface MenuProps extends StyleProps {
   /**
    * Any valid node that can be rendered
    */
-  children: ReactNode;
+  children: ((props: any) => JSX.Element) | JSX.Element | JSX.Element[];
 
   /**
    * Theme is appended to `react-contexify__theme--${given theme}`.
@@ -67,7 +68,7 @@ interface MenuState {
 class Menu extends Component<MenuProps, MenuState> {
   static propTypes = {
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    children: PropTypes.node.isRequired,
+    // children: PropTypes.node.isRequired,
     theme: PropTypes.string,
     animation: PropTypes.string,
     className: PropTypes.string,
@@ -84,7 +85,7 @@ class Menu extends Component<MenuProps, MenuState> {
     onHidden: null
   };
 
-  menuRef!: HTMLDivElement;
+  menuRef: React.RefObject<HTMLDivElement> = React.createRef();
   unsub: (() => boolean)[] = [];
 
   componentDidMount() {
@@ -153,13 +154,15 @@ class Menu extends Component<MenuProps, MenuState> {
     }
   };
 
-  setRef = (ref: HTMLDivElement) => {
-    this.menuRef = ref;
-  };
-
   setMenuPosition() {
+
+    if (!this.menuRef.current) {
+      return;
+    }
+
     const { innerWidth: windowWidth, innerHeight: windowHeight } = window;
-    const { offsetWidth: menuWidth, offsetHeight: menuHeight } = this.menuRef;
+    const { offsetWidth: menuWidth, offsetHeight: menuHeight } = this.menuRef.current;
+
     let { x, y } = this.state;
 
     if (x + menuWidth > windowWidth) {
@@ -210,7 +213,6 @@ class Menu extends Component<MenuProps, MenuState> {
     eventManager.emit(HIDE_ALL);
 
     const { x, y } = this.getMousePosition(e);
-
     this.setState(
       {
         visible: true,
@@ -224,8 +226,8 @@ class Menu extends Component<MenuProps, MenuState> {
   };
 
   render() {
-    const { theme, animation, style, className, children } = this.props;
-    const { visible, nativeEvent, propsFromTrigger, x, y } = this.state;
+    const { theme, animation, style, className } = this.props;
+    const { visible, x, y } = this.state;
 
     const cssClasses = cx(styles.menu, className, {
       [styles.theme + theme]: theme,
@@ -244,20 +246,40 @@ class Menu extends Component<MenuProps, MenuState> {
           <div
             className={cssClasses}
             style={menuStyle}
-            ref={this.setRef}
+            ref={this.menuRef}
             onMouseEnter={this.onMouseEnter}
             onMouseLeave={this.onMouseLeave}
           >
             <div>
-              {cloneItem(children, {
-                nativeEvent,
-                propsFromTrigger
-              })}
+              {this.createItem()}
             </div>
           </div>
         )}
       </Portal>
     );
+  }
+
+  private createItem() {
+    const { children } = this.props;
+    const { nativeEvent, propsFromTrigger } = this.state;
+
+    let element: JSX.Element[] | JSX.Element;
+
+    if (isFunction(children)) {
+      element = children(propsFromTrigger);
+    } else {
+      element = children;
+    }
+
+    if (!element) {
+      return null;
+    }
+
+    if (!isArray(element) && element.type === React.Fragment) {
+      element = React.Children.toArray(element.props.children);
+    }
+
+    return cloneItem(element, { nativeEvent, propsFromTrigger });
   }
 }
 

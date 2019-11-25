@@ -9,6 +9,7 @@ import {
   StyleProps,
   InternalProps
 } from '../types';
+import { isFunction } from '../utils/utils';
 
 export interface ItemProps extends StyleProps, InternalProps {
   /**
@@ -32,9 +33,12 @@ export interface ItemProps extends StyleProps, InternalProps {
    * `({ event, props }) => ...`
    */
   onClick: (args: MenuItemEventHandler) => any;
+
+  nativeEvent?: TriggerEvent;
+  propsFromTrigger?: any;
 }
 
-const noop = () => {};
+const noop = () => { };
 
 class Item extends Component<ItemProps> {
   static propTypes = {
@@ -62,9 +66,9 @@ class Item extends Component<ItemProps> {
     this.isDisabled =
       typeof disabled === 'function'
         ? disabled({
-            event: nativeEvent as TriggerEvent,
-            props: { ...propsFromTrigger, ...data }
-          })
+          event: nativeEvent as TriggerEvent,
+          props: { ...propsFromTrigger, ...data }
+        })
         : disabled;
   }
 
@@ -72,16 +76,18 @@ class Item extends Component<ItemProps> {
     this.isDisabled
       ? e.stopPropagation()
       : this.props.onClick({
-          event: this.props.nativeEvent as TriggerEvent,
-          props: { ...this.props.propsFromTrigger, ...this.props.data }
-        });
+        event: this.props.nativeEvent as TriggerEvent,
+        props: { ...this.props.propsFromTrigger, ...this.props.data }
+      });
   };
 
+
+
   render() {
-    const { className, style, children } = this.props;
+    const { className, style, children, disabled } = this.props;
 
     const cssClasses = cx(styles.item, className, {
-      [`${styles.itemDisabled}`]: this.isDisabled
+      [`${styles.itemDisabled}`]: isFunction(disabled) ? disabled({} as any) : disabled,
     });
 
     return (

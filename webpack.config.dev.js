@@ -5,6 +5,7 @@ const playgroundBasedir = join(__dirname, 'src/__playground__');
 
 module.exports = {
   mode: 'development',
+  devtool: "inline-source-map",
   entry: join(playgroundBasedir, 'index.tsx'),
   output: {
     path: playgroundBasedir,

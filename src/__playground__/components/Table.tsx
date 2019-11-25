@@ -1,11 +1,7 @@
-import React, { MouseEvent } from 'react';
+import React from 'react';
 
-export default ({
-  event,
-  handleEvent
-}: {
-  event: string;
-  handleEvent: (e: MouseEvent<HTMLTableElement>) => void;
+export default ({ event, handleEvent }: {
+  event: string; handleEvent: (e: React.MouseEvent<HTMLTableElement, MouseEvent>) => void;
 }) => {
   const table = [];
   const range = Array.from(Array(5).keys());
